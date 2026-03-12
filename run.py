@@ -11,6 +11,17 @@ import os
 from pathlib import Path
 
 
+def _build_env_with_src(script_dir: Path) -> dict:
+    """Return environment with repo src/ prepended to PYTHONPATH."""
+    env = os.environ.copy()
+    src_dir = (script_dir / 'src').resolve()
+    if src_dir.is_dir():
+        sep = os.pathsep
+        current = env.get('PYTHONPATH', '')
+        env['PYTHONPATH'] = f"{src_dir}{sep}{current}" if current else str(src_dir)
+    return env
+
+
 def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
@@ -88,7 +99,11 @@ Quick Start:
     # Run
     print(f"Running: {' '.join(cmd)}\n")
     try:
-        result = subprocess.run(cmd, check=False)
+        result = subprocess.run(
+            cmd,
+            check=False,
+            env=_build_env_with_src(script_dir),
+        )
         sys.exit(result.returncode)
     except KeyboardInterrupt:
         print("\nInterrupted by user")
