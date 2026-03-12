@@ -4,7 +4,7 @@ set -euo pipefail
 
 
 
-cd /content/transition-amr
+cd /content/transition-amr-parser
 
 
 
