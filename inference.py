@@ -13,6 +13,18 @@ from typing import Dict, Optional, Tuple, List
 from datetime import datetime
 import traceback
 
+# ── Ensure src/ is in sys.path so fairseq_ext subpackages are importable ──────
+# uv's editable install does not always propagate `package_dir={'': 'src'}`
+# into the running interpreter's sys.path. Setting the path here is the
+# safest fallback and is idempotent when the .pth file already did the job.
+_REPO_ROOT = Path(__file__).parent.resolve()
+for _candidate in (_REPO_ROOT / 'src', _REPO_ROOT / '..' / 'src'):
+    _candidate = _candidate.resolve()
+    if _candidate.is_dir() and str(_candidate) not in sys.path:
+        sys.path.insert(0, str(_candidate))
+        break
+# ──────────────────────────────────────────────────────────────────────────────
+
 try:
     from transition_amr_parser.parse import AMRParser
     from penman import decode, encode

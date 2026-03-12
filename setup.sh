@@ -38,6 +38,16 @@ else
     echo "Installing transition_amr_parser from local source..."
     uv pip install --python .venv -e .
     
+    # ─── Critical: add src/ to Python path via .pth file ──────────────────────
+    # uv's editable install does not always propagate package_dir={'': 'src'}
+    # from setup.py into the venv's sys.path, so fairseq_ext.data (and siblings)
+    # appear missing at import time even though the files exist on disk.
+    # The .pth file is the most reliable cross-version fix.
+    SITE_PACKAGES=$(.venv/bin/python -c "import site; print(site.getsitepackages()[0])")
+    echo "$(pwd)/src" > "${SITE_PACKAGES}/transition_amr_src.pth"
+    echo "✓ Added src/ to Python path: ${SITE_PACKAGES}/transition_amr_src.pth"
+    # ───────────────────────────────────────────────────────────────────────────
+    
     echo "Installing torch-scatter..."
     uv pip install --python .venv --no-index torch-scatter \
         -f https://data.pyg.org/whl/torch-1.13.1+cu117.html
