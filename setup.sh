@@ -43,7 +43,7 @@ else
     # from setup.py into the venv's sys.path, so fairseq_ext.data (and siblings)
     # appear missing at import time even though the files exist on disk.
     # The .pth file is the most reliable cross-version fix.
-    SITE_PACKAGES=$(.venv/bin/python -c "import site; print(site.getsitepackages()[0])")
+    SITE_PACKAGES=$(.venv/bin/python -c "import site,sysconfig; print((site.getsitepackages()[0] if hasattr(site, 'getsitepackages') and site.getsitepackages() else sysconfig.get_paths()['purelib']))")
     echo "$(pwd)/src" > "${SITE_PACKAGES}/transition_amr_src.pth"
     echo "✓ Added src/ to Python path: ${SITE_PACKAGES}/transition_amr_src.pth"
     # ───────────────────────────────────────────────────────────────────────────
@@ -58,11 +58,13 @@ else
 import torch
 import torch_scatter  
 import fairseq
+import fairseq_ext.data
 import penman
 from transition_amr_parser.parse import AMRParser
 
 print('✓ torch:', torch.__version__)
 print('✓ fairseq:', fairseq.__version__)
+print('✓ fairseq_ext.data: ok')
 print('✓ penman: ok')
 print('✓ transition_amr_parser: ok')
 print('✓ CUDA available:', torch.cuda.is_available())
