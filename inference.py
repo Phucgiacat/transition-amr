@@ -18,7 +18,8 @@ except Exception:  # pragma: no cover
 def load_sentences(input_file: str) -> List[str]:
     """Load sentences from a JSONL file."""
     sentences: List[str] = []
-    with open(input_file, "r", encoding="utf-8") as file_obj:
+    # Use utf-8-sig to transparently drop BOM if present in the first line.
+    with open(input_file, "r", encoding="utf-8-sig") as file_obj:
         for line_no, line in enumerate(file_obj, 1):
             line = line.strip()
             if not line:
