@@ -1,9 +1,12 @@
+import glob
 import json
 import os
+import pathlib
 import re
 import signal
 import sys
 import tempfile
+import zipfile
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -126,6 +129,48 @@ def _build_progress_bar(total: int, start_idx: int):
     )
 
 
+def _purge_cached_zip(model_name: str) -> None:
+    """Delete a corrupted cached zip for *model_name* from common cache locations."""
+    home = pathlib.Path.home()
+    candidate_dirs = [
+        home / ".cache" / "transition_amr_parser",
+        home / ".cache",
+        pathlib.Path("/tmp"),
+    ]
+    slug = model_name.lower().replace("-", "").replace("_", "")
+    deleted_any = False
+    for cache_dir in candidate_dirs:
+        for zip_path in glob.glob(str(cache_dir / "*.zip")):
+            path_slug = pathlib.Path(zip_path).stem.lower().replace("-", "").replace("_", "")
+            if slug in path_slug or path_slug in slug:
+                try:
+                    os.remove(zip_path)
+                    print(f"[INFO] Deleted corrupted cache file: {zip_path}", file=sys.stderr)
+                    deleted_any = True
+                except OSError as exc:
+                    print(f"[WARNING] Could not delete {zip_path}: {exc}", file=sys.stderr)
+    if not deleted_any:
+        print(
+            "[WARNING] No cached zip found to delete. "
+            "Manually remove the bad zip from ~/.cache/transition_amr_parser/ and retry.",
+            file=sys.stderr,
+        )
+
+
+def _load_parser(AMRParser, model_name: str):
+    """Load AMRParser, recovering from a corrupted cache zip by deleting and retrying."""
+    try:
+        return AMRParser.from_pretrained(model_name)
+    except zipfile.BadZipFile:
+        print(
+            f"[ERROR] Cached zip for '{model_name}' is corrupted. "
+            "Deleting and re-downloading…",
+            file=sys.stderr,
+        )
+        _purge_cached_zip(model_name)
+        return AMRParser.from_pretrained(model_name)
+
+
 def run_batch_inference(
     input_file: str,
     output_file: str,
@@ -156,7 +201,7 @@ def run_batch_inference(
 
     from transition_amr_parser.parse import AMRParser
 
-    parser = AMRParser.from_pretrained(model_name)
+    parser = _load_parser(AMRParser, model_name)
 
     interrupted = False
 
